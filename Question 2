@@ -1,0 +1,144 @@
+//server
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int main() {
+    // Create socket
+    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket == -1) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Bind socket to an address
+    struct sockaddr_in server_address, client_address;
+    memset(&server_address, 0, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_port = htons(8443);
+
+    if (bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1) {
+        perror("Bind failed");
+        close(server_socket);
+        exit(EXIT_FAILURE);
+    }
+
+    // Listen for incoming connections
+    if (listen(server_socket, 5) == -1) {
+        perror("Listen failed");
+        close(server_socket);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Server listening on port 8443...\n");
+
+    while (1) {
+        // Accept incoming connections
+        socklen_t client_address_len = sizeof(client_address);
+        int client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_address_len);
+        if (client_socket == -1) {
+            perror("Accept failed");
+            continue;
+        }
+
+        // Generate a random number between 100 and 999
+        int random_number = rand() % 900 + 100;
+
+        // Send the random number to the client
+        send(client_socket, &random_number, sizeof(random_number), 0);
+
+        printf("Random number %d sent to the client.\n", random_number);
+
+        // Close the connection
+        close(client_socket);
+    }
+
+    // Close the server socket
+    close(server_socket);
+    return 0;
+}
+//client
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int main() {
+    // Create socket
+    int client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_socket == -1) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Connect to the server
+    struct sockaddr_in server_address;
+    memset(&server_address, 0, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(8443);
+    inet_pton(AF_INET, "192.168.11.128", &server_address.sin_addr);
+
+    if (connect(client_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1) {
+        perror("Connection failed");
+        close(client_socket);
+        exit(EXIT_FAILURE);
+    }
+
+    // Receive the random number from the server
+    int random_number;
+    recv(client_socket, &random_number, sizeof(random_number), 0);
+
+    printf("Random number received from server: %d\n", random_number);
+
+    // Close the client socket
+    close(client_socket);
+    return 0;
+}
+Question 3
+Server : 
+import socket
+
+def bar_to_atmosphere(pressure_bar):
+    # 1 bar is approximately equal to 0.98692 atmosphere
+    return pressure_bar * 0.98692
+
+def main():
+    # Create a socket
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Bind the socket to a specific address and port
+    server_address = ('192.168.11.128', 8443)
+    server_socket.bind(server_address)
+
+    # Listen for incoming connections (maximum 1 connection at a time)
+    server_socket.listen(1)
+
+    print("Server listening on {}:{}".format(*server_address))
+
+    while True:
+        # Wait for a connection
+        client_socket, client_address = server_socket.accept()
+
+        try:
+            # Receive data from the client (pressure in bar)
+            data = client_socket.recv(1024)
+            pressure_bar = float(data)
+
+            # Convert pressure to atmosphere-standard
+            atmosphere_standard = bar_to_atmosphere(pressure_bar)
+
+            # Send the converted value back to the client
+            client_socket.sendall(str(atmosphere_standard).encode())
+
+            print("Pressure in bar: {} | Pressure in atmosphere-standard: {}".format(pressure_bar, atmosphere_standard))
+
+        finally:
+            # Close the connection
+            client_socket.close()
+
+if __name__ == "__main__":
+    main()
