@@ -1,0 +1,70 @@
+//server
+import socket
+import threading
+import random
+
+# List of quotes
+quotes = [
+    “Your love is all I need to feel complete”,
+    " Unable are the loved to die, for love is immortality.",
+    " Love is a better master than duty.",
+    " Loving you is both my biggest weakness and greatest strength.",
+    " Being in love with you makes every morning worth getting up for.",
+]
+
+def handle_client(client_socket):
+    # Retrieve a random quote from the list
+    random_quote = random.choice(quotes)
+
+    # Send the quote to the client
+    client_socket.send(random_quote.encode())
+
+    # Close the client socket
+    client_socket.close()
+
+def main():
+    # Create a socket
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Bind the socket to a specific address and port
+    server_address = ('192.168.11.128', 8888)
+    server_socket.bind(server_address)
+
+    # Listen for incoming connections
+    server_socket.listen(5)
+
+    print("Server listening on {}:{}".format(*server_address))
+
+    while True:
+        # Wait for a connection
+        client_socket, client_address = server_socket.accept()
+
+        # Create a new thread to handle the client
+        client_thread = threading.Thread(target=handle_client, args=(client_socket,))
+        client_thread.start()
+
+if __name__ == "__main__":
+    main()
+//client
+import socket
+
+def main():
+    # Create a socket
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Connect to the server
+    server_address = ('192.168.11.128', 8888)
+    client_socket.connect(server_address)
+
+    # Receive the quote from the server
+    data = client_socket.recv(1024)
+    quote = data.decode()
+
+    # Display the received quote
+    print("Quote of the day: {}".format(quote))
+
+    # Close the socket
+    client_socket.close()
+
+if __name__ == "__main__":
+    main()
